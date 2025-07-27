@@ -4,8 +4,12 @@ import com.utsavi.oms_backend.dto.ErrorResponse;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalException {
@@ -25,19 +29,32 @@ public class GlobalException {
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public void handleDataIntegrityViolationException(DataIntegrityViolationException message) {
-        if (message.getMessage().contains("unique_email_phone")) {
+    public void handleDataIntegrityViolationException(DataIntegrityViolationException exception) {
+        if (exception.getMessage().contains("unique_email_phone")) {
             throw new ResourceAlreadyExistsException("A user with this email and phone already exists.");
-        } else if (message.getMessage().contains("unique_address")) {
+        } else if (exception.getMessage().contains("unique_address")) {
             throw new ResourceAlreadyExistsException("This address already exists.");
-        } else if (message.getMessage().contains("unique_name")) {
+        } else if (exception.getMessage().contains("unique_name")) {
             throw new ResourceAlreadyExistsException("A product with this name already exists.");
-        } else if (message.getMessage().contains("unique_user_address_per_order")) {
+        } else if (exception.getMessage().contains("unique_user_address_per_order")) {
             throw new ResourceAlreadyExistsException("An order for this user and address already exists.");
-        } else if (message.getMessage().contains("unique_order_product")) {
+        } else if (exception.getMessage().contains("unique_order_product")) {
             throw new ResourceAlreadyExistsException("This product is already included in the order.");
         } else {
             throw new ResourceAlreadyExistsException("A duplicate entry was detected.");
         }
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, String>> handleValidationException(MethodArgumentNotValidException exception) {
+        Map<String, String> errors = exception.getBindingResult().getFieldErrors()
+                .stream()
+                .collect(Collectors.toMap(
+                        err -> err.getField(),
+                        err -> err.getDefaultMessage(),
+                        (existingValue, newValue) -> existingValue
+                ));
+
+        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
     }
 }

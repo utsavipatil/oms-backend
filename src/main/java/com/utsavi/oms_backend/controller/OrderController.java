@@ -38,8 +38,7 @@ public class OrderController {
     @PostMapping("/place-order")
     public ResponseEntity<OrderResponse> placeOrder(@Validated @RequestBody OrderRequest orderRequest) {
         log.info("Received order request from customer: {}", orderRequest.getEmail());
-        orderService.placeOrder(orderRequest);
-
-        return ResponseEntity.ok().build();
+        OrderResponse orderResponse = orderService.placeOrder(orderRequest);
+        return ResponseEntity.ok(orderResponse);
     }
 }

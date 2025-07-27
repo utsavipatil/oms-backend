@@ -12,8 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 @RequiredArgsConstructor
@@ -34,91 +32,66 @@ public class OrderService {
      * @throws ResourceAlreadyExistsException if a duplicate order is detected
      */
     public OrderResponse placeOrder(OrderRequest orderRequest) {
-        AtomicReference<User> userRef = new AtomicReference<>();
-        AtomicReference<Address> addressRef = new AtomicReference<>();
-        AtomicReference<Product> productRef = new AtomicReference<>();
-        AtomicReference<Order> orderRef = new AtomicReference<>();
-        AtomicReference<OrderItem> orderItemRef = new AtomicReference<>();
+        // Step 1: Find or create the user
+        User user = userRepository.findByEmail(orderRequest.getEmail())
+                .map(existingUser -> {
+                    existingUser.setName(orderRequest.getName());
+                    existingUser.setPhoneNo(orderRequest.getPhoneNo());
+                    return userRepository.save(existingUser);
+                })
+                .orElseGet(() -> {
+                    User newUser = User.builder()
+                            .name(orderRequest.getName())
+                            .email(orderRequest.getEmail())
+                            .phoneNo(orderRequest.getPhoneNo())
+                            .build();
+                    return userRepository.save(newUser);
+                });
 
-        // Check for existing user by email
-        Optional<User> existingUser = userRepository.findByEmail(orderRequest.getEmail());
-
-        if (existingUser.isPresent()) {
-            User user = existingUser.get();
-            // Update user details if needed
-            if (!user.getName().equals(orderRequest.getName()) || !user.getPhoneNo().equals(orderRequest.getPhoneNo())) {
-                user.setName(orderRequest.getName());
-                user.setPhoneNo(orderRequest.getPhoneNo());
-                userRepository.save(user);
-                userRef.set(user);
-            }
-        } else {
-            // Create new user
-            User user = User.builder()
-                    .name(orderRequest.getName())
-                    .email(orderRequest.getEmail())
-                    .phoneNo(orderRequest.getPhoneNo())
-                    .build();
-            userRepository.save(user);
-            userRef.set(user);
-        }
-
-        // Check for existing address
-        Optional<Address> existingAddress = addressRepository.findByStreetAddressAndCityAndStateAndZipcode(
+        // Step 2: Find or create the address
+        Address address = addressRepository.findByStreetAddressAndCityAndStateAndZipcode(
                 orderRequest.getStreetAddress(),
                 orderRequest.getCity(),
                 orderRequest.getState(),
                 orderRequest.getZipcode()
-        );
+        ).orElseGet(() -> {
+            Address newAddress = Address.builder()
+                    .streetAddress(orderRequest.getStreetAddress())
+                    .city(orderRequest.getCity())
+                    .state(orderRequest.getState())
+                    .zipcode(orderRequest.getZipcode())
+                    .build();
+            return addressRepository.save(newAddress);
+        });
 
-        if (!existingAddress.isPresent()) {
-            Address address = existingAddress.orElseGet(() ->
-                    Address.builder()
-                            .streetAddress(orderRequest.getStreetAddress())
-                            .city(orderRequest.getCity())
-                            .state(orderRequest.getState())
-                            .zipcode(orderRequest.getZipcode())
-                            .build()
-            );
-            addressRepository.save(address);
-            addressRef.set(address);
-        } else {
-            addressRef.set(existingAddress.get());
-        }
-
-
-        // Check for existing product
-        orderRequest.getProducts().stream()
-                .map(req -> productRepository.findByName(req.getName())
-                        .orElseGet(() -> productRepository.save(Product.builder().name(req.getName()).build()))
-                );
-
-        // Create and save the order
+        // Step 3: Create and save the order
         Order order = Order.builder()
-                .userId(userRef.get().getUserId())
-                .addressId(addressRef.get().getAddressId())
+                .userId(user.getUserId())
+                .addressId(address.getAddressId())
                 .orderDate(Timestamp.valueOf(LocalDateTime.now()))
                 .status(OrderStatus.Created.toString())
                 .specialInstructions(orderRequest.getSpecialInstructions())
                 .build();
         order = orderRepository.save(order);
-        orderRef.set(order);
 
-        // Check for existing order item
-        orderRequest.getProducts().stream()
-                .filter(product ->
-                        orderItemRepository.findByOrderIdAndProductId(orderRef.get().getOrderId(), productRef.get().getProductId())
-                                .isEmpty()
-                )
-                .map(product -> OrderItem.builder()
-                        .orderId(orderRef.get().getOrderId())
-                        .productId(productRef.get().getProductId())
-                        .quantity(product.getQuantity())
-                        .build())
-                .forEach(orderItemRepository::save);
+        // Step 4: Process order items
+        Order finalOrder = order;
+        orderRequest.getProducts().forEach(productRequest -> {
+            Product product = productRepository.findByName(productRequest.getName())
+                    .orElseGet(() -> {
+                        Product newProduct = Product.builder().name(productRequest.getName()).build();
+                        return productRepository.save(newProduct);
+                    });
 
+            OrderItem orderItem = OrderItem.builder()
+                    .orderId(finalOrder.getOrderId())
+                    .productId(product.getProductId())
+                    .quantity(productRequest.getQuantity())
+                    .build();
+            orderItemRepository.save(orderItem);
+        });
 
-        // Build and return response
+        // Step 5: Build and return response
         return OrderResponse.builder()
                 .orderId(order.getOrderId())
                 .status(order.getStatus())
