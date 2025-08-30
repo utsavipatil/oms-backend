@@ -1,12 +1,15 @@
 package com.utsavi.oms_backend.service;
 
+import com.utsavi.oms_backend.dto.OrderCreatedEvent;
 import com.utsavi.oms_backend.dto.OrderRequest;
 import com.utsavi.oms_backend.dto.OrderResponse;
 import com.utsavi.oms_backend.exception.ResourceAlreadyExistsException;
 import com.utsavi.oms_backend.model.*;
+import com.utsavi.oms_backend.producer.OrderEventProducer;
 import com.utsavi.oms_backend.repository.*;
 import com.utsavi.oms_backend.util.OrderStatus;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,7 +17,6 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 @Service
-@RequiredArgsConstructor
 @Transactional
 public class OrderService {
 
@@ -23,6 +25,18 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final OrderEventProducer orderEventProducer;
+
+    @Autowired
+    public OrderService(AddressRepository addressRepository, OrderItemRepository orderItemRepository, OrderRepository orderRepository, ProductRepository productRepository,
+                        UserRepository userRepository, OrderEventProducer orderEventProducer) {
+        this.addressRepository = addressRepository;
+        this.orderItemRepository = orderItemRepository;
+        this.orderRepository = orderRepository;
+        this.productRepository = productRepository;
+        this.userRepository = userRepository;
+        this.orderEventProducer = orderEventProducer;
+    }
 
     /**
      * Places a new order after checking for existing records
@@ -32,6 +46,21 @@ public class OrderService {
      * @throws ResourceAlreadyExistsException if a duplicate order is detected
      */
     public OrderResponse placeOrder(OrderRequest orderRequest) {
+
+        //Save order to db
+        OrderCreatedEvent orderCreatedEvent = saveOrder(orderRequest);
+
+        //Map and send to Kafka
+        orderEventProducer.publishOrderCreatedEvent(orderCreatedEvent);
+
+        return OrderResponse.builder()
+                .orderId(orderCreatedEvent.getOrderId())
+                .status(orderCreatedEvent.getStatus())
+                .message("Order placed successfully")
+                .build();
+    }
+
+    public OrderCreatedEvent saveOrder(OrderRequest orderRequest) {
         // Step 1: Find or create the user
         User user = userRepository.findByEmail(orderRequest.getEmail())
                 .map(existingUser -> {
@@ -92,10 +121,16 @@ public class OrderService {
         });
 
         // Step 5: Build and return response
-        return OrderResponse.builder()
+        return OrderCreatedEvent.builder()
                 .orderId(order.getOrderId())
-                .status(order.getStatus())
-                .message("Order placed successfully")
-                .build();
+                .name(user.getName())
+                .email(user.getEmail())
+                .phoneNo(user.getPhoneNo())
+                .products(orderRequest.getProducts())
+                .streetAddress(address.getStreetAddress())
+                .city(address.getCity())
+                .state(address.getState())
+                .zipcode(address.getZipcode())
+                .specialInstructions(order.getSpecialInstructions()).build();
     }
 }
