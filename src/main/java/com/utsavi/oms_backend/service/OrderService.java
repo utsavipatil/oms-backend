@@ -131,6 +131,7 @@ public class OrderService {
                 .city(address.getCity())
                 .state(address.getState())
                 .zipcode(address.getZipcode())
-                .specialInstructions(order.getSpecialInstructions()).build();
+                .specialInstructions(order.getSpecialInstructions())
+                .status(order.getStatus()).build();
     }
 }
