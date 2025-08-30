@@ -13,36 +13,43 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalException {
+    @ExceptionHandler(NullPointerException.class)
     public ResponseEntity<ErrorResponse> handleNullPointerException(NullPointerException nullPointerException) {
         ErrorResponse errorResponse = new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Null Pointer Exception");
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException illegalArgumentException) {
         ErrorResponse errorResponse = new ErrorResponse(HttpStatus.BAD_REQUEST.value(), "Illegal Argument Exception");
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
+
+    @ExceptionHandler(ResourceAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleResourceAlreadyExistsException(ResourceAlreadyExistsException resourceAlreadyExistsException) {
         ErrorResponse errorResponse = new ErrorResponse(HttpStatus.CONFLICT.value(), "Resource Already Exists Exception");
         return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public void handleDataIntegrityViolationException(DataIntegrityViolationException exception) {
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(DataIntegrityViolationException exception) {
+        String message;
         if (exception.getMessage().contains("unique_email_phone")) {
-            throw new ResourceAlreadyExistsException("A user with this email and phone already exists.");
+            message = "A user with this email and phone already exists.";
         } else if (exception.getMessage().contains("unique_address")) {
-            throw new ResourceAlreadyExistsException("This address already exists.");
+            message = "This address already exists.";
         } else if (exception.getMessage().contains("unique_name")) {
-            throw new ResourceAlreadyExistsException("A product with this name already exists.");
+            message = "A product with this name already exists.";
         } else if (exception.getMessage().contains("unique_user_address_per_order")) {
-            throw new ResourceAlreadyExistsException("An order for this user and address already exists.");
+            message = "An order for this user and address already exists.";
         } else if (exception.getMessage().contains("unique_order_product")) {
-            throw new ResourceAlreadyExistsException("This product is already included in the order.");
+            message = "This product is already included in the order.";
         } else {
-            throw new ResourceAlreadyExistsException("A duplicate entry was detected.");
+            message = "A duplicate entry was detected.";
         }
+        ErrorResponse errorResponse = new ErrorResponse(HttpStatus.CONTINUE.value(), message);
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
