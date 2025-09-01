@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @Transactional
@@ -160,5 +161,9 @@ public class OrderService {
         orderStatusProducer.publishStatusChange(history);
 
         return history;
+    }
+
+    public List<OrderStatusHistory> getOrderStatusHistory(Integer orderId) {
+        return orderStatusHistoryRepository.findByOrderIdOrderByChangedAtAsc(orderId);
     }
 }

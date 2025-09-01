@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * REST controller for handling order-related HTTP requests.
  * This controller provides endpoints for order operations such as placing new orders.
@@ -45,5 +47,10 @@ public class OrderController {
     public ResponseEntity<OrderStatusHistory> updateStatus(@PathVariable Integer orderId, @Validated @RequestBody OrderStatusRequest orderStatusRequest) {
         OrderStatusHistory orderStatusResponse = orderService.updateOrderStatus(orderId, orderStatusRequest.getNewStatus().toString(), orderStatusRequest.getChangedBy());
         return ResponseEntity.ok(orderStatusResponse);
+    }
+
+    @GetMapping("/{orderId}/history")
+    public ResponseEntity<List<OrderStatusHistory>> getOrderStatusHistory(@PathVariable Integer orderId) {
+        return ResponseEntity.ok(orderService.getOrderStatusHistory(orderId));
     }
 }
