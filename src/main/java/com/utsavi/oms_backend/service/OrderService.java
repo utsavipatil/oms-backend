@@ -1,14 +1,12 @@
 package com.utsavi.oms_backend.service;
 
-import com.utsavi.oms_backend.dto.OrderCreatedEvent;
-import com.utsavi.oms_backend.dto.OrderRequest;
-import com.utsavi.oms_backend.dto.OrderResponse;
+import com.utsavi.oms_backend.dto.*;
 import com.utsavi.oms_backend.exception.ResourceAlreadyExistsException;
 import com.utsavi.oms_backend.model.*;
 import com.utsavi.oms_backend.producer.OrderEventProducer;
+import com.utsavi.oms_backend.producer.OrderStatusProducer;
 import com.utsavi.oms_backend.repository.*;
 import com.utsavi.oms_backend.util.OrderStatus;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,16 +24,21 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final OrderEventProducer orderEventProducer;
+    private final OrderStatusProducer orderStatusProducer;
+    private final OrderStatusHistoryRepository orderStatusHistoryRepository;
 
     @Autowired
     public OrderService(AddressRepository addressRepository, OrderItemRepository orderItemRepository, OrderRepository orderRepository, ProductRepository productRepository,
-                        UserRepository userRepository, OrderEventProducer orderEventProducer) {
+                        UserRepository userRepository, OrderEventProducer orderEventProducer, OrderStatusHistoryRepository orderStatusHistoryRepository,
+                        OrderStatusProducer orderStatusProducer) {
         this.addressRepository = addressRepository;
         this.orderItemRepository = orderItemRepository;
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
+        this.orderStatusHistoryRepository = orderStatusHistoryRepository;
         this.orderEventProducer = orderEventProducer;
+        this.orderStatusProducer = orderStatusProducer;
     }
 
     /**
@@ -133,5 +136,29 @@ public class OrderService {
                 .zipcode(address.getZipcode())
                 .specialInstructions(order.getSpecialInstructions())
                 .status(order.getStatus()).build();
+    }
+
+    public OrderStatusHistory updateOrderStatus(Integer orderId, String newOrderStatus, String changeBy) {
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+        String prevStatus = order.getStatus();
+        //TODO: Add Validation for Status Transition
+
+        order.setStatus(newOrderStatus); //update status
+        orderRepository.save(order);
+
+        //Save to Order History table
+        OrderStatusHistory history = OrderStatusHistory.builder()
+                .orderId(orderId)
+                .prevStatus(prevStatus)
+                .newStatus(newOrderStatus)
+                .changedAt(LocalDateTime.now())
+                .changeBy(changeBy).build();
+
+        orderStatusHistoryRepository.save(history);
+
+        //Publish to Kafka event
+        orderStatusProducer.publishStatusChange(history);
+
+        return history;
     }
 }
