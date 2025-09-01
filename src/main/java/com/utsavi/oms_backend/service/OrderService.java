@@ -166,4 +166,12 @@ public class OrderService {
     public List<OrderStatusHistory> getOrderStatusHistory(Integer orderId) {
         return orderStatusHistoryRepository.findByOrderIdOrderByChangedAtAsc(orderId);
     }
+
+    public OrderStatusResponse getCurrentOrderStatus(Integer orderId) {
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+        return OrderStatusResponse.builder()
+                .orderId(order.getOrderId())
+                .status(order.getStatus())
+                .changedAt(order.getOrderDate()).build();
+    }
 }

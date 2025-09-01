@@ -3,6 +3,7 @@ package com.utsavi.oms_backend.controller;
 import com.utsavi.oms_backend.dto.OrderRequest;
 import com.utsavi.oms_backend.dto.OrderResponse;
 import com.utsavi.oms_backend.dto.OrderStatusRequest;
+import com.utsavi.oms_backend.dto.OrderStatusResponse;
 import com.utsavi.oms_backend.model.OrderStatusHistory;
 import com.utsavi.oms_backend.service.OrderService;
 import lombok.extern.slf4j.Slf4j;
@@ -52,5 +53,10 @@ public class OrderController {
     @GetMapping("/{orderId}/history")
     public ResponseEntity<List<OrderStatusHistory>> getOrderStatusHistory(@PathVariable Integer orderId) {
         return ResponseEntity.ok(orderService.getOrderStatusHistory(orderId));
+    }
+
+    @GetMapping("/{orderId}/status")
+    public ResponseEntity<OrderStatusResponse> getCurrentOrderStatus(@PathVariable Integer orderId) {
+        return ResponseEntity.ok(orderService.getCurrentOrderStatus(orderId));
     }
 }
