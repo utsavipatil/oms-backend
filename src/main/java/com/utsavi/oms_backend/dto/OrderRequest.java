@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Data
@@ -31,6 +32,8 @@ public class OrderRequest {
 
     @NotBlank(message = "Zipcode is required")
     private String zipcode;
+    
+    private BigDecimal totalAmount;
 
     private String specialInstructions;
 }

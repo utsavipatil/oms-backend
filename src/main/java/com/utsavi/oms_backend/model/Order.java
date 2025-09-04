@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 
 @Entity
@@ -32,5 +33,9 @@ public class Order {
     @Column(nullable = false)
     private String status;
 
+    @Column(name = "total_amount")
+    private BigDecimal totalAmount;
+
+    @Column(name = "special_instructions")
     private String specialInstructions;
 }

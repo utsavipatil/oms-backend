@@ -103,6 +103,7 @@ public class OrderService {
                 .addressId(address.getAddressId())
                 .orderDate(Timestamp.valueOf(LocalDateTime.now()))
                 .status(OrderStatus.Created.toString())
+                .totalAmount(orderRequest.getTotalAmount())
                 .specialInstructions(orderRequest.getSpecialInstructions())
                 .build();
         order = orderRepository.save(order);
@@ -120,6 +121,7 @@ public class OrderService {
                     .orderId(finalOrder.getOrderId())
                     .productId(product.getProductId())
                     .quantity(productRequest.getQuantity())
+                    .price(productRequest.getPrice())
                     .build();
             orderItemRepository.save(orderItem);
         });
