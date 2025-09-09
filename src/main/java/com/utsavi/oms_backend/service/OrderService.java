@@ -1,6 +1,8 @@
 package com.utsavi.oms_backend.service;
 
 import com.utsavi.oms_backend.dto.*;
+import com.utsavi.oms_backend.dto.orderTable.Item;
+import com.utsavi.oms_backend.dto.orderTable.OrderItemDto;
 import com.utsavi.oms_backend.exception.ResourceAlreadyExistsException;
 import com.utsavi.oms_backend.model.*;
 import com.utsavi.oms_backend.producer.OrderEventProducer;
@@ -8,12 +10,17 @@ import com.utsavi.oms_backend.producer.OrderStatusProducer;
 import com.utsavi.oms_backend.repository.*;
 import com.utsavi.oms_backend.util.OrderStatus;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -175,5 +182,36 @@ public class OrderService {
                 .orderId(order.getOrderId())
                 .status(order.getStatus())
                 .changedAt(order.getOrderDate()).build();
+    }
+
+    public List<OrderItemDto> getAllOrders(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Order> orderPage = orderRepository.findAll(pageable);
+
+        List<OrderItemDto> orderItemDtoList = new ArrayList<>();
+
+        for (Order order : orderPage) {
+            User user = userRepository.findById(order.getUserId()).orElseThrow(() -> new IllegalArgumentException("User not found for order: " + order.getOrderId()));
+            Address address = addressRepository.findById(order.getAddressId()).orElseThrow(() -> new IllegalArgumentException("Address not found for order: " + order.getAddressId()));
+            List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getOrderId());
+            List<Item> items = orderItems.stream()
+                    .map(orderItem -> {
+                        Product product = productRepository.findById(orderItem.getProductId()).orElseThrow(() -> new IllegalArgumentException("Product not found for order: " + orderItem.getProductId()));
+                        return Item.builder()
+                                .name(product.getName())
+                                .quantity(orderItem.getQuantity())
+                                .build();
+                    })
+                    .collect(Collectors.toList());
+
+            OrderItemDto orderItemDto = OrderItemDto.builder()
+                    .order(order)
+                    .user(user)
+                    .address(address)
+                    .itemList(items).build();
+            orderItemDtoList.add(orderItemDto);
+        }
+
+        return orderItemDtoList;
     }
 }

@@ -4,6 +4,7 @@ import com.utsavi.oms_backend.dto.OrderRequest;
 import com.utsavi.oms_backend.dto.OrderResponse;
 import com.utsavi.oms_backend.dto.OrderStatusRequest;
 import com.utsavi.oms_backend.dto.OrderStatusResponse;
+import com.utsavi.oms_backend.dto.orderTable.OrderItemDto;
 import com.utsavi.oms_backend.model.OrderStatusHistory;
 import com.utsavi.oms_backend.service.OrderService;
 import lombok.extern.slf4j.Slf4j;
@@ -59,5 +60,10 @@ public class OrderController {
     @GetMapping("/{orderId}/status")
     public ResponseEntity<OrderStatusResponse> getCurrentOrderStatus(@PathVariable Integer orderId) {
         return ResponseEntity.ok(orderService.getCurrentOrderStatus(orderId));
+    }
+
+    @GetMapping("/all-orders")
+    public ResponseEntity<List<OrderItemDto>> getAllOrders(@RequestParam(defaultValue = "0") Integer page, @RequestParam(defaultValue = "10") Integer size) {
+        return ResponseEntity.ok(orderService.getAllOrders(page, size));
     }
 }
