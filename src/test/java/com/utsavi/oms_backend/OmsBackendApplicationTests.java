@@ -8,6 +8,7 @@ class OmsBackendApplicationTests {
 
 	@Test
 	void contextLoads() {
+    test
 	}
 
 }
