@@ -8,7 +8,7 @@ class OmsBackendApplicationTests {
 
 	@Test
 	void contextLoads() {
-    test
+    test1
 	}
 
 }
