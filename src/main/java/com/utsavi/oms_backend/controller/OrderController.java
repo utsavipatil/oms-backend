@@ -5,6 +5,7 @@ import com.utsavi.oms_backend.dto.OrderResponse;
 import com.utsavi.oms_backend.dto.OrderStatusRequest;
 import com.utsavi.oms_backend.dto.OrderStatusResponse;
 import com.utsavi.oms_backend.dto.orderTable.OrderItemDto;
+import com.utsavi.oms_backend.dto.orderTracking.OrderStatusTracker;
 import com.utsavi.oms_backend.model.OrderStatusHistory;
 import com.utsavi.oms_backend.service.OrderService;
 import lombok.extern.slf4j.Slf4j;
@@ -57,7 +58,7 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getOrderStatusHistory(orderId));
     }
 
-    @GetMapping("/{orderId}/status")
+    @GetMapping("/{orderId}/current-status")
     public ResponseEntity<OrderStatusResponse> getCurrentOrderStatus(@PathVariable Integer orderId) {
         return ResponseEntity.ok(orderService.getCurrentOrderStatus(orderId));
     }
@@ -65,5 +66,10 @@ public class OrderController {
     @GetMapping("/all-orders")
     public ResponseEntity<List<OrderItemDto>> getAllOrders(@RequestParam(defaultValue = "0") Integer page, @RequestParam(defaultValue = "10") Integer size) {
         return ResponseEntity.ok(orderService.getAllOrders(page, size));
+    }
+
+    @GetMapping("/{orderId}/status-history")
+  public ResponseEntity<OrderStatusTracker> getStatusHistory(@PathVariable Integer orderId){
+      return ResponseEntity.ok(orderService.getAllStatues(orderId));
     }
 }

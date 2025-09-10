@@ -3,6 +3,8 @@ package com.utsavi.oms_backend.service;
 import com.utsavi.oms_backend.dto.*;
 import com.utsavi.oms_backend.dto.orderTable.Item;
 import com.utsavi.oms_backend.dto.orderTable.OrderItemDto;
+import com.utsavi.oms_backend.dto.orderTracking.OrderStatusTracker;
+import com.utsavi.oms_backend.dto.orderTracking.StatusHistory;
 import com.utsavi.oms_backend.exception.ResourceAlreadyExistsException;
 import com.utsavi.oms_backend.model.*;
 import com.utsavi.oms_backend.producer.OrderEventProducer;
@@ -213,5 +215,30 @@ public class OrderService {
         }
 
         return orderItemDtoList;
+    }
+
+    public OrderStatusTracker getAllStatues(Integer orderId){
+
+      List<OrderStatusHistory> orderStatusHistoryList = orderStatusHistoryRepository.findByOrderId(orderId);
+      List<StatusHistory> statusHistoryList = new ArrayList<>();
+      for(OrderStatusHistory orderStatusHistory: orderStatusHistoryList){
+        StatusHistory statusHistory = StatusHistory.builder()
+            .prevStatus(orderStatusHistory.getPrevStatus())
+            .newStatus(orderStatusHistory.getNewStatus())
+            .changedAt(orderStatusHistory.getChangedAt())
+            .changedBy(orderStatusHistory.getChangeBy()).build();
+        statusHistoryList.add(statusHistory);
+      }
+
+      Integer orderIdTemp = orderStatusHistoryList.getFirst().getOrderId();
+      Order order = orderRepository.findById(orderIdTemp).orElseThrow(() -> new IllegalArgumentException("Order not available for order: " + orderIdTemp));
+      User user = userRepository.findById(order.getUserId()).orElseThrow(() -> new IllegalArgumentException("User not found for order: " + order.getOrderId()));
+
+      return OrderStatusTracker.builder()
+          .statusHistoryList(statusHistoryList)
+          .orderId(order.getOrderId())
+          .customerName(user.getName())
+          .totalAmount(order.getTotalAmount())
+          .currentStatus(order.getStatus()).build();
     }
 }
