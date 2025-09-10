@@ -17,7 +17,8 @@ import java.sql.Timestamp;
 @AllArgsConstructor
 public class Order {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "orders_order_id_seq")
+    @SequenceGenerator(name = "orders_order_id_seq", sequenceName = "orders_order_id_seq", allocationSize = 1)
     @Column(name = "order_id", nullable = false)
     private Integer orderId;
 

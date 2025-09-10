@@ -19,7 +19,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class OrderStatusHistory {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "order_status_history_id_seq")
+    @SequenceGenerator(name = "order_status_history_id_seq", sequenceName = "order_status_history_id_seq", allocationSize = 1)
     @Column(name = "id", nullable = false)
     private Integer Id;
 
